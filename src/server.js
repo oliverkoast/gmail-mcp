@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { loadAccounts, resolveAccounts } from "./config.js";
-import { searchMail, listRecent, readMessage } from "./imap.js";
+import { providerFor } from "./provider.js";
 
 const accounts = loadAccounts();
 const accountIds = accounts.map((a) => a.id);
@@ -44,14 +44,14 @@ server.registerTool(
   {
     title: "Search mail",
     description:
-      "Search Gmail using full Gmail search syntax (e.g. `from:stripe.com newer_than:7d`, `subject:invoice has:attachment`, or plain keywords). Returns subject, sender, date, and a snippet per match, labeled by account. Searches All Mail (including archived).",
+      "Search mail across accounts. Gmail accounts use full Gmail search syntax (`from:stripe.com newer_than:7d`, `subject:invoice has:attachment`); Outlook accounts use KQL (`from:`, `subject:`, `hasAttachments:true`); plain keywords work everywhere. Returns subject, sender, date, and a snippet per match, labeled by account.",
     inputSchema: {
-      query: z.string().describe("Gmail search query (same syntax as the Gmail search box)"),
+      query: z.string().describe("Search query (Gmail search-box syntax; KQL for Outlook accounts; plain keywords work on both)"),
       account: accountParam,
       limit: z.number().int().min(1).max(50).default(10).describe("Max results per account"),
     },
   },
-  async ({ query, account, limit }) => json(await fanOut(account, (a) => searchMail(a, query, limit)))
+  async ({ query, account, limit }) => json(await fanOut(account, (a) => providerFor(a).searchMail(a, query, limit)))
 );
 
 server.registerTool(
@@ -68,7 +68,7 @@ server.registerTool(
   async ({ id, account }) => {
     if (account === "all") throw new Error("read_message needs a specific account (ids are per-account).");
     const [target] = resolveAccounts(accounts, account);
-    return json(await readMessage(target, id));
+    return json(await providerFor(target).readMessage(target, id));
   }
 );
 
@@ -82,17 +82,17 @@ server.registerTool(
       limit: z.number().int().min(1).max(50).default(10).describe("Max results per account"),
     },
   },
-  async ({ account, limit }) => json(await fanOut(account, (a) => listRecent(a, limit)))
+  async ({ account, limit }) => json(await fanOut(account, (a) => providerFor(a).listRecent(a, limit)))
 );
 
 server.registerTool(
   "list_accounts",
   {
     title: "List configured accounts",
-    description: "List the configured Gmail accounts (id + email) this server can read.",
+    description: "List the configured mail accounts (id, email, provider) this server can read.",
     inputSchema: {},
   },
-  async () => json(accounts.map(({ id, email }) => ({ id, email })))
+  async () => json(accounts.map(({ id, email, provider }) => ({ id, email, provider })))
 );
 
 // Exit when the MCP client disconnects — lingering IMAP sockets would

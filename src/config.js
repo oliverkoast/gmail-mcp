@@ -1,49 +1,95 @@
-// Account list is driven entirely by env vars so adding a 4th/5th account
-// never touches code:
+// Account list is driven entirely by env vars so adding an account never
+// touches code:
 //
-//   GMAIL_ACCOUNTS=arcforma,formai,personal
-//   GMAIL_ARCFORMA_EMAIL=oliver@arcforma.ai
-//   GMAIL_ARCFORMA_APP_PASSWORD=xxxxxxxxxxxxxxxx
-//   ...
+//   MAIL_ACCOUNTS=arcforma,formai,personal,clientco
 //
-// Each id in GMAIL_ACCOUNTS maps to GMAIL_<ID>_EMAIL / GMAIL_<ID>_APP_PASSWORD
-// (id uppercased). App-password spaces are stripped, so pasting Google's
-// "xxxx xxxx xxxx xxxx" format as-is works.
+//   # provider "gmail" (default): IMAP + app password
+//   MAIL_ARCFORMA_EMAIL=oliver@arcforma.ai
+//   MAIL_ARCFORMA_APP_PASSWORD=xxxxxxxxxxxxxxxx
+//
+//   # provider "gmail-api": Gmail REST API + OAuth (hardened Google orgs)
+//   MAIL_CLIENTCO_PROVIDER=gmail-api
+//   MAIL_CLIENTCO_EMAIL=user@clientco.com
+//
+//   # provider "outlook": Microsoft Graph + device-code OAuth
+//   MAIL_CLIENTMS_PROVIDER=outlook
+//   MAIL_CLIENTMS_EMAIL=user@clientms.com
+//
+// OAuth providers authenticate once via `npm run auth <id>`; tokens are
+// cached in tokens/<id>.json (git-ignored). The legacy GMAIL_* prefix from
+// v0.1 still works.
 
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const tokensDir = path.join(projectRoot, "tokens");
 dotenv.config({ path: path.join(projectRoot, ".env"), quiet: true });
 
+export const PROVIDERS = ["gmail", "gmail-api", "outlook"];
+
+function envFor(id, suffix) {
+  const key = id.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+  return process.env[`MAIL_${key}_${suffix}`] ?? process.env[`GMAIL_${key}_${suffix}`];
+}
+
 export function loadAccounts() {
-  const ids = (process.env.GMAIL_ACCOUNTS || "")
+  const ids = (process.env.MAIL_ACCOUNTS || process.env.GMAIL_ACCOUNTS || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
   if (ids.length === 0) {
-    throw new Error(
-      "No accounts configured. Set GMAIL_ACCOUNTS in .env (see .env.example)."
-    );
+    throw new Error("No accounts configured. Set MAIL_ACCOUNTS in .env (see .env.example).");
   }
 
-  const missing = [];
+  const problems = [];
   const accounts = ids.map((id) => {
-    const key = id.toUpperCase().replace(/[^A-Z0-9]/g, "_");
-    const email = process.env[`GMAIL_${key}_EMAIL`];
-    const password = (process.env[`GMAIL_${key}_APP_PASSWORD`] || "").replace(/\s+/g, "");
-    if (!email) missing.push(`GMAIL_${key}_EMAIL`);
-    if (!password) missing.push(`GMAIL_${key}_APP_PASSWORD`);
-    return { id, email, password };
+    const provider = (envFor(id, "PROVIDER") || "gmail").toLowerCase();
+    const email = envFor(id, "EMAIL");
+    const password = (envFor(id, "APP_PASSWORD") || "").replace(/\s+/g, "");
+
+    if (!PROVIDERS.includes(provider)) {
+      problems.push(`${id}: unknown provider "${provider}" (use ${PROVIDERS.join(" | ")})`);
+    }
+    if (!email) problems.push(`${id}: missing MAIL_${id.toUpperCase()}_EMAIL`);
+    if (provider === "gmail" && !password) {
+      problems.push(`${id}: missing MAIL_${id.toUpperCase()}_APP_PASSWORD (required for provider "gmail")`);
+    }
+    return { id, provider, email, password, tokenFile: path.join(tokensDir, `${id}.json`) };
   });
 
-  if (missing.length) {
-    throw new Error(`Missing env vars for configured accounts: ${missing.join(", ")}`);
+  if (problems.length) {
+    throw new Error(`Account config problems:\n  ${problems.join("\n  ")}`);
   }
 
   return accounts;
+}
+
+// Shared OAuth app settings (one Google OAuth client / one Entra app
+// registration covers every account of that provider).
+export function googleOAuthConfig() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'Provider "gmail-api" needs GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET in .env ' +
+        "(a Desktop-type OAuth client from any Google Cloud project — see CLIENT-SETUP.md)."
+    );
+  }
+  return { clientId, clientSecret };
+}
+
+export function msOAuthConfig() {
+  const clientId = process.env.MS_CLIENT_ID;
+  if (!clientId) {
+    throw new Error(
+      'Provider "outlook" needs MS_CLIENT_ID in .env (an Entra ID app registration ' +
+        "with Mail.Read delegated permission — see CLIENT-SETUP.md)."
+    );
+  }
+  return { clientId, tenant: process.env.MS_TENANT || "common" };
 }
 
 export function resolveAccounts(accounts, selector) {

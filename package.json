@@ -6,12 +6,15 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node src/check.js"
+    "check": "node src/check.js",
+    "auth": "node src/auth.js"
   },
   "license": "MIT",
   "dependencies": {
+    "@azure/msal-node": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^17.4.2",
+    "google-auth-library": "^10.9.0",
     "imapflow": "^1.4.7",
     "mailparser": "^3.9.14",
     "zod": "^4.4.3"

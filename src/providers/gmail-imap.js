@@ -162,3 +162,28 @@ export async function readMessage(account, uid) {
     };
   });
 }
+
+export async function checkAccount(account) {
+  const client = new ImapFlow({
+    host: "imap.gmail.com",
+    port: 993,
+    secure: true,
+    auth: { user: account.email, pass: account.password },
+    logger: false,
+  });
+  try {
+    await client.connect();
+  } catch (err) {
+    const detail = err.responseText || err.message;
+    const hint = err.authenticationFailed
+      ? " (check the app password and that 2-Step Verification is enabled)"
+      : "";
+    throw new Error(`${detail}${hint}`);
+  }
+  try {
+    const status = await client.status(ALL_MAIL, { messages: true });
+    return `${account.email} — ${status.messages} messages in All Mail (IMAP)`;
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}

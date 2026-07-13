@@ -1,63 +1,76 @@
-# gmail-mcp — multi-account Gmail MCP server
+# gmail-mcp — multi-account mail MCP server
 
-A small local MCP server (stdio) that gives Claude unified **read-only** access
-to any number of Gmail accounts at once. Each account authenticates
-independently over IMAP with a Google **app password**; one MCP connection
-searches and reads across all of them.
+A small local MCP server (stdio) that gives Claude unified **read-only**
+access to any number of email accounts at once — Gmail and Microsoft 365 —
+each authenticating independently, all exposed through one connection.
 
-## Why IMAP + app passwords (vs. Gmail API OAuth)
+## Providers (per account, set in `.env`)
 
-For accounts you control, app passwords are the lowest-friction path: no Google
-Cloud project, no OAuth consent screen, no token storage/refresh — each account
-needs only 2-Step Verification plus one generated password. Gmail's IMAP server
-supports the `X-GM-RAW` extension, so full Gmail search syntax works
-(`from:`, `has:attachment`, `newer_than:7d`, ...). The tradeoffs: an app
-password is a full-access mailbox credential (not scoped to read-only), and a
-Workspace admin can disable IMAP or app passwords org-wide. For a client
-deployment across orgs you don't admin, plan to swap the auth layer for Gmail
-API OAuth (`gmail.readonly` scope); the config and tool surface here wouldn't
-change.
+| Provider | Backend | Auth | When |
+|---|---|---|---|
+| `gmail` (default) | IMAP (`X-GM-RAW` = full Gmail search syntax) | App password | Google accounts that allow app passwords — the 5-minute path |
+| `gmail-api` | Gmail REST API | OAuth, `gmail.readonly` scope | Google orgs where IT disabled IMAP/app passwords |
+| `outlook` | Microsoft Graph | OAuth device-code, `Mail.Read` scope | Microsoft 365 / outlook.com accounts |
+
+**Why app passwords first?** For accounts you control they need no Google
+Cloud project, no consent screen, no token storage — just 2-Step Verification
+plus one generated password. The tradeoffs: an app password is a full-access
+mailbox credential, and hardened orgs disable them — that's what the two
+OAuth providers are for. Microsoft has no app-password lane at all (basic
+IMAP auth was retired in 2022–2024), so Outlook accounts always use Graph.
 
 ## Tools
 
 | Tool | Params | Returns |
 |---|---|---|
 | `search_mail` | `query`, `account` (id / email / `"all"`), `limit` | subject, sender, date, snippet per match, labeled by account |
-| `read_message` | `id`, `account` (specific — ids are per-account) | full parsed body + headers + attachment list |
+| `read_message` | `id`, `account` (specific — ids are per-account) | full body + headers + attachment list |
 | `list_recent` | `account`, `limit` | newest messages first |
-| `list_accounts` | — | configured account ids + emails |
+| `list_accounts` | — | configured account ids + emails + providers |
 
 `account: "all"` fans out to every account in parallel and merges results
 newest-first; a failing account comes back as an `errors` entry instead of
-failing the call.
+failing the call. Result shape is identical across providers.
 
 ## Setup
 
 1. `npm install`
-2. `cp .env.example .env`
-3. For **each** account: enable 2-Step Verification, then create an app
-   password at <https://myaccount.google.com/apppasswords> and paste it into
-   `.env` (spaces are fine).
-4. `npm run check` — logs into every account and prints its All Mail count.
+2. `cp .env.example .env`, list your accounts (see comments in the file)
+3. Per account: paste an app password, or `npm run auth <id>` for the OAuth
+   providers (one-time interactive sign-in; tokens cached in `tokens/`,
+   git-ignored). Step-by-step per lane: **[CLIENT-SETUP.md](CLIENT-SETUP.md)**
+   — including the IT request templates for locked-down orgs.
+4. `npm run check` — verifies every account end-to-end and prints counts.
 
 ### Adding an account
 
-Append an id to `GMAIL_ACCOUNTS` and add `GMAIL_<ID>_EMAIL` +
-`GMAIL_<ID>_APP_PASSWORD` to `.env`. No code changes.
+Append an id to `MAIL_ACCOUNTS`, add its `MAIL_<ID>_*` vars, auth if OAuth.
+No code changes.
 
-## Wiring into Claude Code
+## Wiring into Claude
+
+Claude Code:
 
 ```sh
-claude mcp add --scope user gmail -- node /path/to/gmail-mcp/src/server.js
+claude mcp add --scope user mail -- node /path/to/gmail-mcp/src/server.js
 ```
 
-Credentials are read from this project's own `.env` (path-resolved, so the
-server works regardless of the working directory it's launched from).
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{ "mcpServers": { "mail": { "command": "node", "args": ["/path/to/gmail-mcp/src/server.js"] } } }
+```
+
+`.env` and `tokens/` are resolved relative to this folder, so launch cwd
+doesn't matter.
 
 ## Security notes
 
-- `.env` is git-ignored; nothing secret is ever committed.
-- The server is read-only by construction: mailboxes are opened with a
-  read-only lock and no send/modify commands exist in the code.
-- Revoke access anytime by deleting the app password in the Google account
-  (Security → 2-Step Verification → App passwords).
+- `.env` and `tokens/` are git-ignored; nothing secret is ever committed.
+- Read-only by construction: IMAP mailboxes open with a read-only lock, and
+  the OAuth scopes requested (`gmail.readonly`, `Mail.Read`) cannot send,
+  modify, or delete even if the code tried.
+- The MCP server is headless — it never opens an interactive auth flow; if a
+  token is missing or revoked it returns an error telling you to run
+  `npm run auth <id>`.
+- Revocation per lane is documented in [CLIENT-SETUP.md](CLIENT-SETUP.md).
