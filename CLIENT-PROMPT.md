@@ -18,10 +18,10 @@ Set up unified mail access for Claude across my work email accounts.
    exactly what to click. Use "Lane A" from CLIENT-SETUP.md for any Google
    account (fall back to Lane B only if app passwords are blocked), and
    "Lane C" for any Microsoft 365 account:
-   - <email 1> (Microsoft 365)
-   - <email 2> (Microsoft 365)
-   - <email 3> (Microsoft 365)
-   - <email 4> (Google Workspace)
+   - <Polymateria email> (Microsoft 365)
+   - <AdvoTech email> (Microsoft 365)
+   - <TVP email> (Google Workspace)
+   - <AESON email> (Google Workspace)
 3. I will type all passwords and sign-ins myself — when a credential is
    needed, tell me where to put it and wait for me to say done. Never ask me
    to paste a password into the chat.

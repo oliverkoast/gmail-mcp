@@ -33,14 +33,14 @@ a time.
 > `CLIENT-SETUP.md` and walk me through
 > connecting my email accounts to it, ONE AT A TIME, telling me exactly what
 > to click. My accounts are:
-> - <email 1> (Microsoft 365)
-> - <email 2> (Microsoft 365)
-> - <email 3> (Microsoft 365)
-> - <email 4> (Google Workspace)
+> - <Polymateria email> (Microsoft 365)
+> - <AdvoTech email> (Microsoft 365)
+> - <TVP email> (Google Workspace)
+> - <AESON email> (Google Workspace)
 >
 > I'll type my own passwords and sign-ins — never ask me to paste a password
 > into the chat. For each Microsoft account, open the browser sign-in and let
-> me approve read-only access. For the Google account, use the app-password
+> me approve read-only access. For each Google account, use the app-password
 > steps. When everything's connected, run `npm run check` to confirm, wire it
 > into my Claude, and then prove it works by searching all my accounts for a
 > keyword and showing the results labeled by account.
