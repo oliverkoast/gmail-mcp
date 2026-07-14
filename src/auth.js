@@ -10,6 +10,12 @@ import { spawn } from "node:child_process";
 import { loadAccounts, tokensDir } from "./config.js";
 import { GMAIL_SCOPE } from "./providers/gmail-api.js";
 import { makePca, MS_SCOPES } from "./providers/outlook-graph.js";
+import { CryptoProvider } from "@azure/msal-node";
+
+// Fixed loopback port. Personal Microsoft accounts require an EXACT redirect
+// URI match (including port), unlike work accounts which allow any port on
+// http://localhost. So we pin one and register http://localhost:<PORT>.
+const MS_REDIRECT_PORT = 3000;
 import { googleOAuthConfig } from "./config.js";
 
 const id = process.argv[2];
@@ -84,9 +90,56 @@ if (account.provider === "gmail-api") {
 
 if (account.provider === "outlook") {
   const pca = makePca(account);
-  const result = await pca.acquireTokenByDeviceCode({
+  // Interactive loopback (auth-code + PKCE): opens the browser, captures the
+  // result on http://localhost:<port>. More robust than device code for
+  // personal Microsoft accounts (no code-entry race, no expiry window), and
+  // a smoother experience for the client. Needs http://localhost registered
+  // as a redirect URI on the app (Mobile & desktop platform).
+  // Manual auth-code + PKCE loopback on a FIXED port (see MS_REDIRECT_PORT).
+  const redirectUri = `http://localhost:${MS_REDIRECT_PORT}`;
+  const crypto = new CryptoProvider();
+  const { verifier, challenge } = await crypto.generatePkceCodes();
+
+  const authUrl = await pca.getAuthCodeUrl({
     scopes: MS_SCOPES,
-    deviceCodeCallback: (info) => console.log(`\n${info.message}\n`),
+    redirectUri,
+    codeChallenge: challenge,
+    codeChallengeMethod: "S256",
+    loginHint: account.email,
+  });
+
+  const server = http.createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", (e) =>
+      reject(e.code === "EADDRINUSE"
+        ? new Error(`Port ${MS_REDIRECT_PORT} is in use. Free it (or change MS_REDIRECT_PORT) and retry.`)
+        : e));
+    server.listen(MS_REDIRECT_PORT, "127.0.0.1", resolve);
+  });
+
+  console.log(`\nSign in as ${account.email} (read-only mail). Opening your browser...`);
+  console.log(`\nIf it doesn't open, paste this URL into your browser:\n\n${authUrl}\n`);
+  tryOpen(authUrl);
+
+  const code = await new Promise((resolve, reject) => {
+    server.on("request", (req, res) => {
+      const url = new URL(req.url, redirectUri);
+      const err = url.searchParams.get("error");
+      const code = url.searchParams.get("code");
+      res.end(err
+        ? `Sign-in failed: ${err}. You can close this tab.`
+        : "Authenticated. You can close this tab and return to the terminal.");
+      if (err) reject(new Error(`${err}: ${url.searchParams.get("error_description") || ""}`));
+      else if (code) resolve(code);
+    });
+  });
+  server.close();
+
+  const result = await pca.acquireTokenByCode({
+    scopes: MS_SCOPES,
+    redirectUri,
+    code,
+    codeVerifier: verifier,
   });
   console.log(`✅ ${account.id} authenticated as ${result.account?.username} — token cache saved to tokens/${account.id}.json`);
   process.exit(0);

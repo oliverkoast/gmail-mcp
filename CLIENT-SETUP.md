@@ -46,11 +46,12 @@ Uses the Gmail API with the **read-only** scope. One-time browser sign-in.
 
 ### Lane C — Microsoft 365 / Outlook (via Microsoft Graph)
 
-One-time device-code sign-in with the **Mail.Read** (read-only) permission.
+One-time browser sign-in with the **Mail.Read** (read-only) permission.
 
 1. In `.env`: set `MAIL_<ID>_PROVIDER=outlook` and the account email.
-2. Run `npm run auth <id>` → it prints a URL + short code → open the URL,
-   enter the code, sign in with the account. MFA works normally.
+2. Run `npm run auth <id>` → your browser opens → sign in with the account
+   (MFA works normally) → **Accept** the read-only mail consent. The tab
+   redirects to a local "Authenticated" page and the token is cached.
 3. If you see "Need admin approval", your org requires admin consent — send
    IT the **Microsoft IT request** below and re-run after they approve.
 
@@ -132,20 +133,31 @@ Lane A needs nothing.
    their IT gets full ownership. For personal `@gmail.com` accounts, prefer
    lane A (app passwords) — lane B there is demo-grade only.
 
-**Entra ID app registration (lane C)** — in <https://entra.microsoft.com>
-(any Microsoft work account can create a free tenant):
+**Entra ID app registration (lane C)** — in <https://entra.microsoft.com>.
+Needs a directory: a bare personal Microsoft account has none, so if
+"App registrations" bounces you ("create applications outside of a directory
+has been deprecated"), first create one — the reliable route is a free Azure
+account at <https://azure.microsoft.com/free> (card for identity check, never
+charged; app registrations are free), which provisions a "Default Directory".
+Then:
 
 1. App registrations → New registration → name `claude-mail` → supported
    account types: **"Accounts in any organizational directory and personal
    Microsoft accounts"**.
-2. Authentication → Advanced settings → **"Allow public client flows" = Yes**
-   (required for the device-code sign-in — the flow fails without it).
-3. API permissions → Add → Microsoft Graph → Delegated → **Mail.Read**.
-4. Copy the Application (client) ID into `.env` as `MS_CLIENT_ID`.
+2. Authentication → **"Allow public client flows" = Yes**.
+3. Authentication → **Add a platform → Mobile and desktop applications**, and
+   register redirect URI **`http://localhost:3000`** (the exact loopback the
+   auth CLI uses — see `MS_REDIRECT_PORT` in src/auth.js). Personal Microsoft
+   accounts require an exact port match; work accounts are more lenient, but
+   registering this one URI covers both.
+4. API permissions → Add → Microsoft Graph → Delegated → **Mail.Read**.
+5. Copy the Application (client) ID into `.env` as `MS_CLIENT_ID`.
 
 No client secret is needed (public client), so the registration itself
 contains nothing sensitive. One registration covers every Outlook account in
-every engagement.
+every engagement. Sign in per account with `npm run auth <id>`: it opens the
+browser, you approve read-only mail, and it captures the result on
+`http://localhost:3000` — no code to type.
 
 ## Revoking access (any time, ~30 seconds)
 
