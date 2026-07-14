@@ -4,6 +4,15 @@ A small local MCP server (stdio) that gives Claude unified **read-only**
 access to any number of email accounts at once — Gmail and Microsoft 365 —
 each authenticating independently, all exposed through one connection.
 
+> **Setting this up for the first time? Start here → [CLIENT-ONEPAGER.md](CLIENT-ONEPAGER.md)**
+> — a plain-English walkthrough (install, connect your accounts, done).
+> The rest of this README is the technical reference.
+>
+> **Docs map:** [CLIENT-ONEPAGER.md](CLIENT-ONEPAGER.md) (start here) ·
+> [CLIENT-SETUP.md](CLIENT-SETUP.md) (per-account steps + IT request templates) ·
+> [DAILY-BRIEFING.md](DAILY-BRIEFING.md) (automate a daily briefing) ·
+> [CLIENT-NOTE.md](CLIENT-NOTE.md) (what it is, in plain terms).
+
 ## Providers (per account, set in `.env`)
 
 | Provider | Backend | Auth | When |
