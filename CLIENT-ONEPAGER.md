@@ -28,8 +28,9 @@ a time.
 
 > **Setup prompt — paste this into Claude Code:**
 >
-> Clone the repo at **<REPO_URL>** into a folder in my home directory and run
-> `npm install` in it. Then open `CLIENT-SETUP.md` and walk me through
+> Clone the repo at **https://github.com/oliverkoast/gmail-mcp** into a folder
+> in my home directory and run `npm install` in it. Then open
+> `CLIENT-SETUP.md` and walk me through
 > connecting my email accounts to it, ONE AT A TIME, telling me exactly what
 > to click. My accounts are:
 > - <email 1> (Microsoft 365)
