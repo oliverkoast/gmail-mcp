@@ -1,4 +1,4 @@
-# gmail-mcp — multi-account mail MCP server
+# multi-email-mcp — multi-account mail MCP server
 
 A small local MCP server (stdio) that gives Claude unified **read-only**
 access to any number of email accounts at once — Gmail and Microsoft 365 —
@@ -61,13 +61,13 @@ No code changes.
 Claude Code:
 
 ```sh
-claude mcp add --scope user mail -- node /path/to/gmail-mcp/src/server.js
+claude mcp add --scope user mail -- node /path/to/multi-email-mcp/src/server.js
 ```
 
 Claude Desktop (`claude_desktop_config.json`):
 
 ```json
-{ "mcpServers": { "mail": { "command": "node", "args": ["/path/to/gmail-mcp/src/server.js"] } } }
+{ "mcpServers": { "mail": { "command": "node", "args": ["/path/to/multi-email-mcp/src/server.js"] } } }
 ```
 
 `.env` and `tokens/` are resolved relative to this folder, so launch cwd

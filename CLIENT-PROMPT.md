@@ -4,7 +4,7 @@ The easiest delivery is: client installs Claude Code (or opens Claude
 Desktop + Claude Code), then pastes the prompt below. Their Claude does the
 cloning, installing, and hand-holding; CLIENT-SETUP.md carries the exact
 per-account steps so the prompt stays short. The repo is public at
-https://github.com/oliverkoast/gmail-mcp — fill in the client's real account
+https://github.com/oliverkoast/multi-email-mcp — fill in the client's real account
 emails below before sending. (CLIENT-ONEPAGER.md is the friendlier,
 non-technical version of this.)
 
@@ -12,7 +12,7 @@ non-technical version of this.)
 
 Set up unified mail access for Claude across my work email accounts.
 
-1. Clone https://github.com/oliverkoast/gmail-mcp into a folder in my home directory (or unzip the archive
+1. Clone https://github.com/oliverkoast/multi-email-mcp into a folder in my home directory (or unzip the archive
    I was sent), run `npm install` inside it, and open CLIENT-SETUP.md.
 2. I have these accounts — walk me through them ONE AT A TIME, telling me
    exactly what to click. Use "Lane A" from CLIENT-SETUP.md for any Google

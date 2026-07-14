@@ -8,7 +8,7 @@ send/delete/modify operations.
 ## What gets installed
 
 - Node.js (LTS) if not already present
-- This folder (`gmail-mcp`), with your account credentials in a local `.env`
+- This folder (`multi-email-mcp`), with your account credentials in a local `.env`
   file and OAuth tokens (if any) in `tokens/` — both excluded from version
   control
 
@@ -69,7 +69,7 @@ npm run check          # one ✅ line per account with a message count
   "mcpServers": {
     "mail": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/gmail-mcp/src/server.js"]
+      "args": ["/ABSOLUTE/PATH/TO/multi-email-mcp/src/server.js"]
     }
   }
 }
@@ -80,7 +80,7 @@ then fully quit and reopen Claude Desktop.
 **Claude Code:**
 
 ```sh
-claude mcp add --scope user mail -- node /ABSOLUTE/PATH/TO/gmail-mcp/src/server.js
+claude mcp add --scope user mail -- node /ABSOLUTE/PATH/TO/multi-email-mcp/src/server.js
 ```
 
 Smoke test in Claude: *"Search all my accounts for `<keyword>` and show which

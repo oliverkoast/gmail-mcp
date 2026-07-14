@@ -1,7 +1,7 @@
 {
-  "name": "gmail-mcp",
+  "name": "multi-email-mcp",
   "version": "0.1.0",
-  "description": "Local MCP server exposing unified read-only access to multiple Gmail accounts over IMAP",
+  "description": "Local MCP server exposing unified read-only access to multiple email accounts (Gmail + Outlook) from one connection",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
