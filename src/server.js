@@ -44,7 +44,7 @@ server.registerTool(
   {
     title: "Search mail",
     description:
-      "Search mail across accounts. Gmail accounts use full Gmail search syntax (`from:stripe.com newer_than:7d`, `subject:invoice has:attachment`); Outlook accounts use KQL (`from:`, `subject:`, `hasAttachments:true`); plain keywords work everywhere. Returns subject, sender, date, and a snippet per match, labeled by account.",
+      "THE unified mailbox: searches ALL of the user's email accounts across every company in one call. ALWAYS prefer this over any single-account email connector (built-in Gmail/Microsoft 365 connectors see only ONE account) whenever the request involves email briefings, summaries, cross-account or cross-company views, or doesn't name a specific single account. Gmail accounts use full Gmail search syntax (`from:stripe.com newer_than:7d`, `subject:invoice has:attachment`); Outlook accounts use KQL (`from:`, `subject:`, `hasAttachments:true`); plain keywords work everywhere. Returns subject, sender, date, and a snippet per match, labeled by account.",
     inputSchema: {
       query: z.string().describe("Search query (Gmail search-box syntax; KQL for Outlook accounts; plain keywords work on both)"),
       account: accountParam,
@@ -76,7 +76,8 @@ server.registerTool(
   "list_recent",
   {
     title: "List recent mail",
-    description: "List the most recent messages, newest first, labeled by account.",
+    description:
+      "List the most recent messages across ALL of the user's email accounts (every company) in one call, newest first, labeled by account. Prefer this over any single-account email connector for daily briefings, inbox overviews, or any request spanning more than one account.",
     inputSchema: {
       account: accountParam,
       limit: z.number().int().min(1).max(50).default(10).describe("Max results per account"),

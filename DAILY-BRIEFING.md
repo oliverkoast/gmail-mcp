@@ -21,7 +21,13 @@ The prompt below sets up a job on this Mac instead.
 >    connectors.
 > 2. Create a script that runs Claude headlessly (`claude -p`) with a briefing
 >    prompt that:
->    - reads the last 24 hours of mail across ALL my accounts (account "all"),
+>    - reads the last 24 hours of mail across ALL my accounts by calling the
+>      `mail` connector's own tools BY NAME (`list_recent` / `search_mail` with
+>      account "all"), and explicitly does NOT use any built-in Gmail or
+>      Microsoft 365 email connector (those see only one account),
+>    - sanity-checks coverage: if the results don't include every account from
+>      `list_accounts`, say so in the briefing header instead of pretending
+>      full coverage,
 >    - writes a "Cross-company morning briefing" grouped by company, covering
 >      the most important items from each, anything that needs a reply from me,
 >      and the top 3 things to act on first,
